@@ -33,7 +33,7 @@ def create_user():
     return redirect(url_for("crud.users"))
   return render_template("crud/create.html", form=form)
 
-@crud.route("\users")
+@crud.route("/users")
 def users():
   users = User.query.all()
   return render_template("crud/index.html", users=users)
