@@ -10,7 +10,7 @@ def create_app():
 
   app.config.from_mapping(
     SECRET_KEY="2AZSMss3p5QPbcY2hBsJ",
-    SQLARCHEMY_DATABASE_URI=
+    SQLALCHEMY_DATABASE_URI=
       f"sqlite:///{Path(__file__).parent.parent / 'local.sqlite'}",
     SQLALCHEMY_TRACKMODIFICATIONS=False
   )
