@@ -14,7 +14,7 @@ crud = Blueprint(
 def index():
   return render_template("crud/index.html")
 
-@crud.route("/user/new", methods=["GET", "POST"])
+@crud.route("/users/new", methods=["GET", "POST"])
 def create_user():
   # UserFormをインスタンス化する
   form = UserForm()
@@ -32,3 +32,8 @@ def create_user():
     # ユーザーの一覧画面へリダイレクトする
     return redirect(url_for("crud.users"))
   return render_template("crud/create.html", form=form)
+
+@crud.route("\users")
+def users():
+  users = User.query.all()
+  return render_template("crud/index.html", users=users)
