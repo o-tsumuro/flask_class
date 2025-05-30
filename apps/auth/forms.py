@@ -31,5 +31,5 @@ class LoginForm(FlaskForm):
         Email("メールアドレスの形式で入力してください。"),
      ],
   )
-  password = PasswordField("パスワード", valudators=[DataRequired("パスワードは必須です。")])
+  password = PasswordField("パスワード", validators=[DataRequired("パスワードは必須です。")])
   submit = SubmitField("ログイン")
