@@ -10,7 +10,7 @@ import uuid
 from pathlib import Path
 from apps.app import db
 from apps.crud.models import User
-from apps.detector.models import UserImage
+from apps.detector.models import UserImage, UserImageTag
 from apps.detector.forms import UploadImageForm
 from flask import (
   Blueprint,
@@ -133,3 +133,15 @@ def exec_detector(target_image_path):
   )
 
   return tags, detected_image_file_name
+
+def save_detected_image_tags(user_image, tags, detected_image_file_name):
+  user_image.image_path = detected_image_file_name
+  user_image.is_detected = True
+  db.session.add(user_image)
+
+  for tag in tags:
+    user_image_tag = UserImageTag(
+      user_image_id=user_image.id, tag_name=tag)
+    db.session.add(user_image_tag)
+
+  db.session.commit()
