@@ -32,7 +32,7 @@ def index():
 def image_file(filename):
   return send_from_directory(current_app.config["UPLOAD_FOLDER"], filename)
 
-@dt.route("/upload", method=["GET", "POST"])
+@dt.route("/upload", methods=["GET", "POST"])
 @login_required
 def upload_image():
   form = UploadImageForm()
