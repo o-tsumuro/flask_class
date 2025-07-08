@@ -8,7 +8,7 @@ import torch
 import torchvision
 from apps.app import db
 from apps.crud.models import User
-from apps.detector.forms import DetectorForm, UploadImageForm
+from apps.detector.forms import DetectorForm, UploadImageForm, DeleteForm
 from apps.detector.models import UserImage, UserImageTag
 from flask import (
     Blueprint,
@@ -78,9 +78,6 @@ def upload_image():
         return redirect(url_for("detector.index"))
     return render_template("detector/upload.html", form=form)
 
-
-# --- ヘルパー関数の修正 ---
-
 def make_color(labels):
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in labels]
     color = random.choice(colors)
@@ -91,13 +88,9 @@ def make_line(result_image):
     line = round(0.002 * max(result_image.shape[0:2])) + 1
     return line
 
-
-# cv2を返さないように修正
 def draw_lines(c1, c2, result_image, line, color):
     cv2.rectangle(result_image, c1, c2, color, thickness=line)
 
-
-# cv2を引数と返り値から削除
 def draw_texts(result_image, line, c1, color, labels, label):
     display_txt = f"{labels[label]}"
     font = max(line - 1, 1)
@@ -115,18 +108,13 @@ def draw_texts(result_image, line, c1, color, labels, label):
         lineType=cv2.LINE_AA,
     )
 
-
-# --- 物体検知のメイン関数の修正 ---
-
 def exec_detect(target_image_path):
     labels = current_app.config["LABELS"]
     
-    # 画像を読み込み、RGBに変換する
     image = Image.open(target_image_path).convert("RGB")
     
     image_tensor = torchvision.transforms.functional.to_tensor(image)
 
-    # weights_only=Falseを指定してモデルを読み込む
     model = torch.load(
         Path(current_app.root_path, "detector", "model.pt"), weights_only=False
     )
@@ -143,39 +131,27 @@ def exec_detect(target_image_path):
             c1 = (int(box[0]), int(box[1]))
             c2 = (int(box[2]), int(box[3]))
             
-            # cv2 = を削除
             draw_lines(c1, c2, result_image, line, color)
-            # cv2 = と引数のcv2を削除
             draw_texts(result_image, line, c1, color, labels, label)
             
             tags.append(labels[label])
 
-# 検知後の画像ファイル名を生成する
     detected_image_file_name = str(uuid.uuid4()) + ".jpg"
 
-    # --- ★★★ ここから修正 ★★★ ---
-
-    # 画像のフルパスを先に変数に入れる
     detected_image_file_path = str(
         Path(current_app.config["UPLOAD_FOLDER"], detected_image_file_name)
     )
     
-    # 保存する画像データ（色空間を変換）
     image_to_save = cv2.cvtColor(result_image, cv2.COLOR_RGB2BGR)
 
-    # imwriteの返り値を受け取り、成功したかチェックする
     success = cv2.imwrite(detected_image_file_path, image_to_save)
 
-    # コンソールに結果を表示
     if success:
         print(f"【成功】画像が保存されました: {detected_image_file_path}")
     else:
         print(f"【失敗】画像の保存に失敗しました。パス: {detected_image_file_path}")
     
-    # --- ★★★ ここまで修正 ★★★ ---
-
     return tags, detected_image_file_name
-
 
 def save_detected_image_tags(user_image, tags, detected_image_file_name):
     user_image.image_path = detected_image_file_name
@@ -187,7 +163,6 @@ def save_detected_image_tags(user_image, tags, detected_image_file_name):
         db.session.add(user_image_tag)
 
     db.session.commit()
-
 
 @dt.route("/detect/<string:image_id>", methods=["POST"])
 @login_required
@@ -211,4 +186,19 @@ def detect(image_id):
         current_app.logger.error(e)
         return redirect(url_for("detector.index"))
 
+    return redirect(url_for("detector.index"))
+
+@dt.route("/images/delete/<string:image_id>", methods=["POST"])
+@login_required
+def delete_image(image_id):
+    try:
+        db.session.query(UserImageTag).filter(
+            UserImageTag.user_image_id == image_id
+        ).delete()
+        db.session.query(UserImage).filter(UserImage.id == image_id).delete()
+        db.session.commit()
+    except SQLAlchemyError as e:
+        flash("画像削除処理でエラーが発生しました。")
+        current_app.logger.error(e)
+        db.session.rollback()
     return redirect(url_for("detector.index"))
