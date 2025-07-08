@@ -1,5 +1,4 @@
-{% extends "detector/base.html" %}
-{% block content %}
+{% extends "detector/base.html" %} {% block content %}
 
 {% with messages = get_flashed_messages() %}
 {% if messages %}
@@ -20,6 +19,19 @@
   <header class="d-flex justify-content-between">
     <div class="dt-image-username">{{ user_image.User.username }}</div>
     <div class="d-flex flex-row-reerse">
+      <div class="p-2">
+        <form
+          action="{{ url_for('detector.delete_image', image_id=user_image.UserImage.id) }}"
+          method="POST"
+        >
+          {{ delete_form.csrf_token }}
+          {% if current_user.id == user_image.User.id %}
+            {{ delete_form.submit(class="btn btn-danger") }}
+          {% else %}
+            {{ delete_form.submit(class="btn btn-danger", disabled="disabled") }}
+          {% endif %}
+        </form>
+      </div>
       <div class="p-2">
         <form
           action="{{ url_for('detector.detect', image_id=user_image.UserImage.id) }}"
@@ -48,6 +60,4 @@
     {% endfor %}
   </footer>
 </div>
-{% endfor %}
-
-{% endblock %}
+{% endfor %} {% endblock %}
