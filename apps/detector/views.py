@@ -18,6 +18,7 @@ from flask import (
     render_template,
     send_from_directory,
     url_for,
+    request,
 )
 from flask_login import current_user, login_required
 from PIL import Image
@@ -79,6 +80,56 @@ def upload_image():
 
         return redirect(url_for("detector.index"))
     return render_template("detector/upload.html", form=form)
+
+@dt.route("/images/search", methods=["GET"])
+def search():
+    user_images = db.session.query(User, UserImage).join(
+        UserImage, User.id == UserImage.user_id
+    )
+
+    search_text = request.args.get("search")
+    user_image_tag_dict = {}
+    filtered_user_images = []
+
+    for user_image in user_images:
+        if not search_text:
+            user_image_tags = (
+                db.session.query(UserImageTag)
+                .filter(UserImageTag.user_image_id == user_image.UserImage.id)
+                .all()
+            )
+        else:
+            user_image_tags = (
+                db.session.query(UserImageTag)
+                .filter(UserImageTag.user_image_id == user_image.UserImage.id)
+                .filter(UserImageTag.tag_name.like(
+                    "%" + search_text + "%"))
+                .all()
+            )
+
+            if not user_image_tags:
+                continue
+
+            user_image_tags = (
+                db.session.query(UserImageTag)
+                .filter(UserImageTag.user_image_id == user_image.UserImage.id)
+                .all()
+            )
+        
+        user_image_tag_dict[user_image.UserImage.id] = user_image_tags
+        filtered_user_images.append(user_image)
+
+    delete_form = DeleteForm()
+    detector_form = DetectorForm()
+
+    return render_template(
+        "detector/index.html",
+        user_images=filtered_user_images,
+        user_image_tag_dict=user_image_tag_dict,
+        delete_form=delete_form,
+        detector_form=detector_form,
+    )
+
 
 def make_color(labels):
     colors = [[random.randint(0, 255) for _ in range(3)] for _ in labels]
